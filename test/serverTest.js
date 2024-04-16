@@ -17,6 +17,7 @@ describe('Photos', function(){
         chai.request(server)
         .get('/')
         .end(function(err,res){
+            console.log(err)
             res.should.have.status(200);
             res.should.be.html;
             res.body.should.be.a('object')
