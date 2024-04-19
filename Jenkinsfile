@@ -2,62 +2,53 @@ pipeline {
     agent any
     
     stages {
-        stage('Milestone 2: Basic Pipeline') {
+        stage('Set up') {
             steps {
-                git url: 'https://github.com/CherylYegon/gallery' // Specify the repository URL
-                
-                // Install required dependencies
-                sh 'npm install'
-                
-                // Make change to landing page for Milestone 2
-                sh 'echo "<h1>MILESTONE 2</h1>" > landing_page.html'
-                
-                // Deploy to Render
-                sh 'node server'
-                
-                // Push changes to Render
-                sh 'render deploy -- --branch main'
-            }
-            post {
-                success {
-                    // Send Slack message on successful deployment
-                    script {
-                        slackSend(channel: '#Cheryl_IP1', color: 'good', message: "MILESTONE 2 deployment successful! Build ID: ${env.BUILD_ID}. View deployment: ${env.RENDER_URL}")
-                    }
-                }
+                sh 'sed -i "s/<USERNAME>/cherylyegon/g" _config.js'
+                sh 'sed -i "s/<PASSWORD>/RYLche123*/g" _config.js'
             }
         }
-        
-        stage('Milestone 3: Tests') {
-            steps {
-                // Switch to test branch and merge with main
-                sh 'git checkout test && git merge main'
-                
-                // Run tests
-                sh 'npm test'
-                
-                // Update landing page for Milestone 3
-                sh 'echo "<h1>MILESTONE 3</h1>" >> landing_page.html'
-                
-                // Deploy to Render
-                sh 'node server'
-                
-                // Push changes to Render
-                sh 'render deploy -- --branch main'
+        stage('Basic pipeline') {
+            environment {
+                NODEJS = 'NODEJS'
             }
-            post {
-                success {
-                    // Send Slack message on successful deployment
-                    script {
-                        slackSend(channel: '#Cheryl_IP1', color: 'good', message: "MILESTONE 3 deployment successful! Build ID: ${env.BUILD_ID}. View deployment: ${env.RENDER_URL}")
-                    }
+            tools {
+                nodejs "NODEJS"
+            }
+            steps {
+                sh 'npm install'
+                sh 'node server &'
+                
+                sh 'echo "<h1>MILESTONE 2</h1>" >> index.html'
+            }
+        }
+        stage('Tests') {
+            environment {
+                NODEJS = 'NODEJS'
+            }
+            tools {
+                nodejs "NODEJS"
+            }
+            steps {
+                sh 'git checkout -- test'
+                
+                sh 'npm install'
+                
+                sh 'git checkout master'
+                sh 'git merge origin/test'
+            }
+        }
+        stage('Call Render Webhook') {
+            steps {
+                script {
+                    def webhookUrl = 'https://api.render.com/deploy/srv-cods5o8l6cac73bpjau0?key=0QQuMEDDNd8'
+                    def response = sh(script: "curl -X POST ${webhookUrl}", returnStdout: true).trim()
+                    echo "Webhook response: ${response}"
                 }
-                failure {
-                    // Send email notification on test failure
-                    emailext body: "Tests failed on Jenkins. Please investigate.",
-                             subject: "Test Failure - ${env.JOB_NAME} ${env.BUILD_NUMBER}",
-                             to: "cyegon2023@gmail.com"
-                }
+            }
+        stage('Slack integration') {
+            steps {
+                sh 'echo "<h1>MILESTONE 4</h1>" >> index.html'
             }
         }
     }
